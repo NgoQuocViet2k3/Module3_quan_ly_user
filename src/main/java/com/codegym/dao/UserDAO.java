@@ -1,8 +1,9 @@
 package com.codegym.dao;
 
 import com.codegym.model.User;
-import com.mysql.jdbc.Driver;
 
+
+import javax.jws.soap.SOAPBinding;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,9 +13,7 @@ public class UserDAO implements IUserDAO {
     private String jdbcUsername = "root";
     private String jdbcPassword = "123456";
 
-    private static final String INSERT_USERS_SQL = "INSERT INTO users" + "  (name, email, country) VALUES " +
-            " (?, ?, ?);";
-
+    private static final String INSERT_USERS_SQL = "INSERT INTO users  (name, email, country) VALUES  (?, ?, ?);";
     private static final String SELECT_USER_BY_ID = "select id,name,email,country from users where id =?";
     private static final String SELECT_ALL_USERS = "select * from users";
     private static final String DELETE_USERS_SQL = "delete from users where id = ?;";
@@ -38,7 +37,7 @@ public class UserDAO implements IUserDAO {
         return connection;
     }
 
-    public void insertUser(User user) throws SQLException {
+    public void insertUser(User user) {
         System.out.println(INSERT_USERS_SQL);
         try (Connection connection = getConnection(); PreparedStatement preparedStatement = connection.prepareStatement(INSERT_USERS_SQL)) {
             preparedStatement.setString(1, user.getName());
@@ -59,7 +58,6 @@ public class UserDAO implements IUserDAO {
             System.out.println(preparedStatement);
             ResultSet rs = preparedStatement.executeQuery();
 
-            // Step 4: Process the ResultSet object.
             while (rs.next()) {
                 String name = rs.getString("name");
                 String email = rs.getString("email");
@@ -114,6 +112,46 @@ public class UserDAO implements IUserDAO {
             rowUpdated = statement.executeUpdate() > 0;
         }
         return rowUpdated;
+    }
+
+    @Override
+    public User getUserByID(int id) {
+        User user = null;
+        String query = "{CALL get_user_by_id(?)}";
+        try (Connection connection = getConnection();
+             CallableStatement callableStatement = connection.prepareCall(query);) {
+            callableStatement.setInt(1, id);
+            ResultSet rs = callableStatement.executeQuery();
+            while (rs.next()) {
+                String name = rs.getString("name");
+                String email = rs.getString("email");
+                String country = rs.getString("country");
+                user = new User(id, name, email, country);
+            }
+        } catch (SQLException e) {
+            printSQLException(e);
+        }
+        return user;
+
+    }
+
+    @Override
+    public void insertUserStore(User user) throws SQLException {
+        String query = "{CALL insert_user(?,?,?)}";
+        try (
+                Connection connection = getConnection();
+                CallableStatement callableStatement = connection.prepareCall(query);) {
+            callableStatement.setString(1, user.getName());
+            callableStatement.setString(2, user.getEmail());
+            callableStatement.setString(3, user.getCountry());
+            System.out.println(callableStatement);
+            callableStatement.executeUpdate();
+
+        } catch (
+                SQLException e) {
+            printSQLException(e);
+        }
+
     }
 
     private void printSQLException(SQLException ex) {
