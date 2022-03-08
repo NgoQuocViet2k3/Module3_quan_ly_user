@@ -2,6 +2,7 @@ package com.codegym.dao;
 
 import com.codegym.model.User;
 
+import javax.jws.soap.SOAPBinding;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -19,4 +20,7 @@ public interface IUserDAO {
     User getUserByID(int id);
 
     void insertUserStore(User user) throws SQLException;
+
+    void addUserTransaction(User user, int[] permisions);
+
 }
